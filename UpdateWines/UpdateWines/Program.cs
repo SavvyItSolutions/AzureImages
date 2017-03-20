@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
@@ -77,6 +77,9 @@ namespace UpdateWines
 
                 }
             }
+
+            p.getImagesFromDrive();          
+
         }
 
 
@@ -296,6 +299,7 @@ namespace UpdateWines
                 using (var fs = System.IO.File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     blob.UploadFromStream(fs);
+                    fs.Close();
                 }
 
                 File.Delete(path);
@@ -303,13 +307,16 @@ namespace UpdateWines
                 //For BottleDetailsImages
                 container = blobClient.GetContainerReference("bottleimagesdetails");
                 blob = container.GetBlockBlobReference(WineId+".jpg");
-                ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height, 550, 600);
+                ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height, 750, 900);
                 ImageForBottle.Save(path);
                 using (var fs = System.IO.File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
-                    blob.UploadFromStream(fs);
+                    blob.UploadFromStream(fs);                                      
+                    fs.Close();
                 }
                 File.Delete(path);
+                //ImageForBottle.Dispose();
+                BottleImage.Dispose();           
                 return 1;
             }
             else
@@ -356,7 +363,51 @@ namespace UpdateWines
 
             return destImage;
         }
+
+        private void getImagesFromDrive()
+        {
+            string path = ConfigurationManager.AppSettings["GoogleDrivePath"];
+            DirectoryInfo di = new DirectoryInfo(path);
+            FileInfo[] Images = null; 
+            bool IsPresent = di.GetFiles("*.jpg").Any();
+            if(IsPresent)
+            {
+                 Images = di.GetFiles("*.jpg");
+                 for(int i=0;i<Images.Length;i++)
+                 {
+                    string[] wineName = Images[i].Name.Split('.');
+                    int sku = int.Parse(wineName[0]);
+                    int wineId = getWineId(sku);
+                    if (wineId > 0)
+                    {
+                        string fullPath = path + "\\" + Images[i].Name;
+                        UploadImage(Image.FromFile(fullPath), wineId);
+                        File.Delete(fullPath);
+                    }
+                 }
+            }
+
+            
+        }
+
+        private int getWineId(int sku)
+        {
+            int wineId = 0;
+            string str = ConfigurationManager.ConnectionStrings["DBConnection"].ConnectionString;
+            using (SqlConnection con = new SqlConnection(str))
+            {
+                using (SqlCommand cmd = new SqlCommand("GetWineIdForSKU", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@sku",sku);
+                    cmd.Connection = con;
+                    con.Open();
+                    wineId = Convert.ToInt32(cmd.ExecuteScalar());
+                }
+
+            }
+            return wineId;
+
+        }
     }
-
-
 }
