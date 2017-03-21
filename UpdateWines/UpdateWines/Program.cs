@@ -22,63 +22,92 @@ namespace UpdateWines
         int delta = 2;
         public static void Main(string[] args)
         {
-            List<WineDetails> WineList = new List<WineDetails>();
-            string str = ConfigurationManager.ConnectionStrings["DBConnection"].ConnectionString;
-            using (SqlConnection con = new SqlConnection(str))
+            try
             {
-                using (SqlCommand cmd = new SqlCommand("CheckMaxWineId", con))
-                {
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Connection = con;
-                    con.Open();
-                    SqlDataAdapter da = new SqlDataAdapter(cmd);
-                    DataSet ds = new DataSet();
-                    da.Fill(ds);
-                    if (ds != null && ds.Tables.Count > 0)
-                    {
-                        if (ds.Tables[0].Rows.Count > 0)
-                        {
-                            foreach (DataRow dr in ds.Tables[0].Rows)
-                            {
-                                WineDetails WineObj = new WineDetails();
-                                WineObj.WineId = Convert.ToInt32(dr["WineId"]);
-                                WineObj.WineName = dr["WineName"].ToString();
-                                WineObj.Vintage = dr["Vintage"].ToString();
-                                WineList.Add(WineObj);
-                            }
-                            con.Close();
-                        }
-                    }
-                }
-
-            }
-            Program p = new Program();
-            int success = 0;
-            foreach (WineDetails obj in WineList)
-            {
-                Image img = p.GetFile(obj.WineName, obj.Vintage);
-                success = p.UploadImage(img, obj.WineId);
-
-            }
-
-            if (WineList.Count > 0)
-            {
-                int lastWineId = WineList[WineList.Count - 1].WineId;
+                List<WineDetails> WineList = new List<WineDetails>();
+                string str = ConfigurationManager.ConnectionStrings["DBConnection"].ConnectionString;
                 using (SqlConnection con = new SqlConnection(str))
                 {
-                    using (SqlCommand cmd = new SqlCommand("update updateWine set MaxWineID=@wineId", con))
+                    using (SqlCommand cmd = new SqlCommand("CheckMaxWineId", con))
                     {
-                        cmd.Parameters.AddWithValue("@wineId", lastWineId);
+                        cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Connection = con;
                         con.Open();
-                        cmd.ExecuteNonQuery();
-                        con.Close();
+                        SqlDataAdapter da = new SqlDataAdapter(cmd);
+                        DataSet ds = new DataSet();
+                        da.Fill(ds);
+                        if (ds != null && ds.Tables.Count > 0)
+                        {
+                            if (ds.Tables[0].Rows.Count > 0)
+                            {
+                                foreach (DataRow dr in ds.Tables[0].Rows)
+                                {
+                                    WineDetails WineObj = new WineDetails();
+                                    WineObj.WineId = Convert.ToInt32(dr["WineId"]);
+                                    WineObj.WineName = dr["WineName"].ToString();
+                                    WineObj.Vintage = dr["Vintage"].ToString();
+                                    WineList.Add(WineObj);
+                                }
+                                con.Close();
+                            }
+                        }
                     }
 
                 }
-            }
+                
 
-            p.getImagesFromDrive();          
+                Program p = new Program();
+                int success = 0;
+                foreach (WineDetails obj in WineList)
+                {
+                    Image img = p.GetFile(obj.WineName, obj.Vintage);
+                    success = p.UploadImage(img, obj.WineId);
+
+                }
+
+                if (WineList.Count > 0)
+                {
+                    int lastWineId = WineList[WineList.Count - 1].WineId;
+                    using (SqlConnection con = new SqlConnection(str))
+                    {
+                        using (SqlCommand cmd = new SqlCommand("update updateWine set MaxWineID=@wineId", con))
+                        {
+                            cmd.Parameters.AddWithValue("@wineId", lastWineId);
+                            cmd.Connection = con;
+                            con.Open();
+                            cmd.ExecuteNonQuery();
+                            con.Close();
+                        }
+
+                    }
+                }
+
+                p.getImagesFromDrive();
+            }
+            catch(Exception ex)
+            {
+                string path = ConfigurationManager.AppSettings["ErrorLog"];
+                string message = string.Format("Time: {0}", DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss tt"));
+                message += Environment.NewLine;
+                message += "-----------------------------------------------------------";
+                message += Environment.NewLine;
+                message += string.Format("Message: {0}", ex.Message);
+                message += Environment.NewLine;
+                message += string.Format("StackTrace: {0}", ex.StackTrace);
+                message += Environment.NewLine;
+                message += string.Format("Source: {0}", ex.Source);
+                message += Environment.NewLine;
+                message += string.Format("TargetSite: {0}", ex.TargetSite.ToString());
+                message += Environment.NewLine;
+                message += "-----------------------------------------------------------";
+                message += Environment.NewLine;
+                System.IO.Directory.CreateDirectory(path);
+                using (StreamWriter writer = new StreamWriter(path + "Error.txt", true))
+                {
+                    writer.WriteLine(message);
+                    writer.Close();
+                }
+            }      
 
         }
 
@@ -306,16 +335,16 @@ namespace UpdateWines
 
                 //For BottleDetailsImages
                 container = blobClient.GetContainerReference("bottleimagesdetails");
-                blob = container.GetBlockBlobReference(WineId+".jpg");
+                blob = container.GetBlockBlobReference(WineId + ".jpg");
                 ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height, 750, 900);
                 ImageForBottle.Save(path);
                 using (var fs = System.IO.File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
-                    blob.UploadFromStream(fs);                                      
+                    blob.UploadFromStream(fs);
                     fs.Close();
                 }
                 File.Delete(path);
-                //ImageForBottle.Dispose();
+                ImageForBottle.Dispose();
                 BottleImage.Dispose();           
                 return 1;
             }
