@@ -26,6 +26,9 @@ namespace UpdateWines
             {
                 List<WineDetails> WineList = new List<WineDetails>();
                 string str = ConfigurationManager.ConnectionStrings["DBConnection"].ConnectionString;
+                int maxEnoID = 0;
+                int maxPPId = 0;
+                DataTable dt = new DataTable();
                 using (SqlConnection con = new SqlConnection(str))
                 {
                     using (SqlCommand cmd = new SqlCommand("CheckMaxWineId", con))
@@ -39,8 +42,16 @@ namespace UpdateWines
                         if (ds != null && ds.Tables.Count > 0)
                         {
                             if (ds.Tables[0].Rows.Count > 0)
+                                maxEnoID = Convert.ToInt32(ds.Tables[2].Rows[0]["MaxId"]);
+                            if (ds.Tables[1].Rows.Count > 0)
+                                maxPPId = Convert.ToInt32(ds.Tables[3].Rows[0]["MaxId"]);
+
+                            dt = ds.Tables[0];
+                            dt.Merge(ds.Tables[1]);
+
+                            if (dt.Rows.Count > 0)
                             {
-                                foreach (DataRow dr in ds.Tables[0].Rows)
+                                foreach (DataRow dr in dt.Rows)
                                 {
                                     WineDetails WineObj = new WineDetails();
                                     WineObj.WineId = Convert.ToInt32(dr["WineId"]);
@@ -54,7 +65,8 @@ namespace UpdateWines
                     }
 
                 }
-                
+
+
 
                 Program p = new Program();
                 int success = 0;
@@ -67,16 +79,29 @@ namespace UpdateWines
 
                 if (WineList.Count > 0)
                 {
-                    int lastWineId = WineList[WineList.Count - 1].WineId;
                     using (SqlConnection con = new SqlConnection(str))
                     {
-                        using (SqlCommand cmd = new SqlCommand("update updateWine set MaxWineID=@wineId", con))
+                        if (maxEnoID > 0)
                         {
-                            cmd.Parameters.AddWithValue("@wineId", lastWineId);
-                            cmd.Connection = con;
-                            con.Open();
-                            cmd.ExecuteNonQuery();
-                            con.Close();
+                            using (SqlCommand cmd = new SqlCommand("update updateWine set MaxWineID=@wineId where storeId = 1", con))
+                            {
+                                cmd.Parameters.AddWithValue("@wineId", maxEnoID);
+                                cmd.Connection = con;
+                                con.Open();
+                                cmd.ExecuteNonQuery();
+                                con.Close();
+                            }
+                        }
+                        if (maxPPId > 0)
+                        {
+                            using (SqlCommand cmd = new SqlCommand("update updateWine set MaxWineID=@wineId where storeId = 2", con))
+                            {
+                                cmd.Parameters.AddWithValue("@wineId", maxPPId);
+                                cmd.Connection = con;
+                                con.Open();
+                                cmd.ExecuteNonQuery();
+                                con.Close();
+                            }
                         }
 
                     }
