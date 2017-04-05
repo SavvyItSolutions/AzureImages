@@ -66,8 +66,6 @@ namespace UpdateWines
 
                 }
 
-
-
                 Program p = new Program();
                 int success = 0;
                 foreach (WineDetails obj in WineList)
@@ -232,7 +230,22 @@ namespace UpdateWines
                     int ret = possibleCandidate(x);
                     if (ret == 1)
                     {
-                        return img;
+                        //Convert Trans to White
+                        Bitmap newBitmap = new Bitmap(x.Width, x.Height);
+                        Color actualColor;
+                        for (int j = 0; j < x.Height; j++)
+                        {
+                            for (int k = 0; k < x.Width; k++)
+                            {
+                                actualColor = x.GetPixel(k, j);
+
+                                if (actualColor.A == 0 && actualColor.R == 0 && actualColor.G == 0 && actualColor.B == 0)
+                                    newBitmap.SetPixel(k, j, Color.White);
+                                else
+                                    newBitmap.SetPixel(k, j, actualColor);
+                            }
+                        }
+                        return newBitmap;
                     }
                     else if (ret == 2 && bitmp == null)
                     {
