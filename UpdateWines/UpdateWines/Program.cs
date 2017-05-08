@@ -57,6 +57,7 @@ namespace UpdateWines
                                     WineObj.WineId = Convert.ToInt32(dr["WineId"]);
                                     WineObj.WineName = dr["WineName"].ToString();
                                     WineObj.Vintage = dr["Vintage"].ToString();
+                                    WineObj.Store = Convert.ToInt32(dr["store"]);
                                     WineList.Add(WineObj);
                                 }
                                 con.Close();
@@ -71,7 +72,7 @@ namespace UpdateWines
                 foreach (WineDetails obj in WineList)
                 {
                     Image img = p.GetFile(obj.WineName, obj.Vintage);
-                    success = p.UploadImage(img, obj.WineId);
+                    success = p.UploadImage(img, obj.WineId,obj.Store);
 
                 }
 
@@ -348,12 +349,16 @@ namespace UpdateWines
                 return false;
         }
 
-        private int UploadImage(Image BottleImage, int WineId)
+        private int UploadImage(Image BottleImage, int WineId,int store)
         {
             string conStrings = ConfigurationManager.ConnectionStrings["AzureStorageConnection"].ConnectionString;
             CloudStorageAccount storageaccount = CloudStorageAccount.Parse(conStrings);
             CloudBlobClient blobClient = storageaccount.CreateCloudBlobClient();
-            CloudBlobContainer container = blobClient.GetContainerReference("bottleimages");
+            CloudBlobContainer container = null;
+            if (store == 1)
+                container = blobClient.GetContainerReference("imagebottlewall");
+            else if(store == 2)
+                container = blobClient.GetContainerReference("imagebottlepp");
             container.CreateIfNotExists();
             //For BottleImages
             CloudBlockBlob blob = container.GetBlockBlobReference(WineId + ".jpg");
@@ -372,7 +377,10 @@ namespace UpdateWines
                 File.Delete(path);
 
                 //For BottleDetailsImages
-                container = blobClient.GetContainerReference("bottleimagesdetails");
+                if(store == 1)
+                    container = blobClient.GetContainerReference("bottleimagedetailswall");
+                else if (store == 2)
+                    container = blobClient.GetContainerReference("bottleimagedetailspp");
                 blob = container.GetBlockBlobReference(WineId + ".jpg");
                 ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height, 750, 900);
                 ImageForBottle.Save(path);
@@ -448,7 +456,7 @@ namespace UpdateWines
                     if (wineId > 0)
                     {
                         string fullPath = path + "\\" + Images[i].Name;
-                        UploadImage(Image.FromFile(fullPath), wineId);
+                        UploadImage(Image.FromFile(fullPath), wineId,1);
                         File.Delete(fullPath);
                     }
                  }

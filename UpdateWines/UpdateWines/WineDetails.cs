@@ -11,6 +11,7 @@ namespace UpdateWines
         private int wineId;
         private string wineName;
         private string vintage;
+        private int store;
 
         public int WineId
         {
@@ -26,6 +27,11 @@ namespace UpdateWines
         {
             get { return this.vintage; }
             set { this.vintage = value; }
+        }
+        public int Store
+        {
+            get { return this.store; }
+            set { this.store = value; }
         }
     }
 }
