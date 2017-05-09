@@ -175,3 +175,6 @@ C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\ko\System.Spatial.resources
 C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\ru\System.Spatial.resources.dll
 C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\zh-Hans\System.Spatial.resources.dll
 C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\zh-Hant\System.Spatial.resources.dll
+C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\NLog.config
+C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\NLog.dll
+C:\GIT\AzureImages\UpdateWines\UpdateWines\bin\Debug\NLog.xml

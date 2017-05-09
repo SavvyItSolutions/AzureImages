@@ -14,14 +14,19 @@ using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Blob;
 using System.Drawing.Drawing2D;
 using System.Web;
+using NLog;
 
 namespace UpdateWines
 {
     public class Program
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
         int delta = 2;
         public static void Main(string[] args)
         {
+            string msg = string.Format("Time: {0}", DateTime.Now.ToString("dd/MM/yyyy hh:mm:ss tt"));
+            logger.Info(msg);
+            logger.Info("-------------------------------------------------------");
             try
             {
                 List<WineDetails> WineList = new List<WineDetails>();
@@ -36,9 +41,11 @@ namespace UpdateWines
                         cmd.CommandType = CommandType.StoredProcedure;
                         cmd.Connection = con;
                         con.Open();
+                        logger.Info("Connection opened");
                         SqlDataAdapter da = new SqlDataAdapter(cmd);
                         DataSet ds = new DataSet();
                         da.Fill(ds);
+                        logger.Info("Dataset obtained");
                         if (ds != null && ds.Tables.Count > 0)
                         {
                             if (ds.Tables[0].Rows.Count > 0)
@@ -72,8 +79,8 @@ namespace UpdateWines
                 foreach (WineDetails obj in WineList)
                 {
                     Image img = p.GetFile(obj.WineName, obj.Vintage);
-                    success = p.UploadImage(img, obj.WineId,obj.Store);
-
+                    logger.Info("Obtained Image for " + obj.WineName + ". Uploading Image..");
+                    success = p.UploadImage(img, obj.WineId, obj.Store);
                 }
 
                 if (WineList.Count > 0)
@@ -87,6 +94,7 @@ namespace UpdateWines
                                 cmd.Parameters.AddWithValue("@wineId", maxEnoID);
                                 cmd.Connection = con;
                                 con.Open();
+                                logger.Info("Updating maximum wine id for Wall DB");
                                 cmd.ExecuteNonQuery();
                                 con.Close();
                             }
@@ -98,6 +106,7 @@ namespace UpdateWines
                                 cmd.Parameters.AddWithValue("@wineId", maxPPId);
                                 cmd.Connection = con;
                                 con.Open();
+                                logger.Info("Updating maximum wine id for Point pleasent DB");
                                 cmd.ExecuteNonQuery();
                                 con.Close();
                             }
@@ -210,6 +219,7 @@ namespace UpdateWines
 
         public Image GetFile(string wineName, string Vintage)
         {
+            logger.Info("Getting file for "+wineName+" ....");
             string html = GetHtmlCode(wineName, Vintage);
             List<string> urls = GetUrls(html);
             Image img;
@@ -367,13 +377,13 @@ namespace UpdateWines
                 Image ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height,250,300);
                 string path = @"C:\soumik\personal\New folder\" + WineId + ".jpg";
                 ImageForBottle.Save(path);
-
+                logger.Info("Uploading Image to Blob!");
                 using (var fs = System.IO.File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     blob.UploadFromStream(fs);
                     fs.Close();
                 }
-
+                logger.Info("Image uploaded");
                 File.Delete(path);
 
                 //For BottleDetailsImages
@@ -384,11 +394,13 @@ namespace UpdateWines
                 blob = container.GetBlockBlobReference(WineId + ".jpg");
                 ImageForBottle = ResizeImage(BottleImage, BottleImage.Width, BottleImage.Height, 750, 900);
                 ImageForBottle.Save(path);
+                logger.Info("Uploading Details image to Blob!");
                 using (var fs = System.IO.File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
                 {
                     blob.UploadFromStream(fs);
                     fs.Close();
                 }
+                logger.Info("Image uploaded");
                 File.Delete(path);
                 ImageForBottle.Dispose();
                 BottleImage.Dispose();           
@@ -396,6 +408,7 @@ namespace UpdateWines
             }
             else
             {
+                logger.Info("Image not found for "+WineId);
                 return 0;
             }
         }
@@ -452,10 +465,12 @@ namespace UpdateWines
                  {
                     string[] wineName = Images[i].Name.Split('.');
                     int sku = int.Parse(wineName[0]);
+                    logger.Info("Uploading image from Drive!");
                     int wineId = getWineId(sku);
                     if (wineId > 0)
                     {
                         string fullPath = path + "\\" + Images[i].Name;
+                        logger.Info("Uploading Image from drive for :"+Images[i].Name);
                         UploadImage(Image.FromFile(fullPath), wineId,1);
                         File.Delete(fullPath);
                     }
